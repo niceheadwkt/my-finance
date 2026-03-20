@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雲端同步帳本</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 flex justify-center">
+
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-6 self-start mt-4">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-black text-indigo-600">☁️ 雲端同步帳本</h1>
+            <span id="status" class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">已連線</span>
+        </div>
+
+        <!-- 輸入區域 -->
+        <div class="space-y-3 mb-6">
+            <input type="text" id="desc" placeholder="項目說明" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-400">
+            <div class="flex gap-2">
+                <input type="number" id="amount" placeholder="金額" class="flex-1 p-3 border rounded-xl outline-none">
+                <select id="type" class="p-3 border rounded-xl bg-gray-50">
+                    <option value="expense">支出</option>
+                    <option value="income">收入</option>
+                </select>
+            </div>
+            <button onclick="addData()" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">同步至雲端</button>
+        </div>
+
+        <!-- 統計卡片 -->
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-gradient-to-br from-rose-500 to-rose-600 p-4 rounded-2xl text-white shadow-md">
+                <p class="text-xs opacity-80">總支出</p>
+                <p class="text-xl font-bold">$ <span id="totalExp">0</span></p>
+            </div>
+            <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 rounded-2xl text-white shadow-md">
+                <p class="text-xs opacity-80">總收入</p>
+                <p class="text-xl font-bold">$ <span id="totalInc">0</span></p>
+            </div>
+        </div>
+
+        <!-- 雲端即時列表 -->
+        <div id="list" class="space-y-3 max-h-80 overflow-y-auto pt-2">
+            <p class="text-center text-gray-400 py-10">讀取雲端資料中...</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK 模組載入 -->
+    <script type="module">
+//		// Import the functions you need from the SDKs you need
+//		import { initializeApp } from "firebase/app";
+//		import { getAnalytics } from "firebase/analytics";
+//		// TODO: Add SDKs for Firebase products that you want to use
+//		// https://firebase.google.com/docs/web/setup#available-libraries
+//
+//		// Your web app's Firebase configuration
+//		// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+//		const firebaseConfig = {
+//		  apiKey: "AIzaSyC0VseUx0ghf2oh48xNjzfi31HS5uEP6Pw",
+//		  authDomain: "myfinanceapp-f08ae.firebaseapp.com",
+//		  projectId: "myfinanceapp-f08ae",
+//		  storageBucket: "myfinanceapp-f08ae.firebasestorage.app",
+//		  messagingSenderId: "103173784019",
+//		  appId: "1:103173784019:web:c3b48a64a03fafad592f26",
+//		  measurementId: "G-BZ4SVB2W3H"
+//		};
+//
+//		// Initialize Firebase
+//		const app = initializeApp(firebaseConfig);
+//		const analytics = getAnalytics(app);
+
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 🔥 請將下方替換為你在 Firebase 控制台取得的配置
+		const firebaseConfig = {
+		  apiKey: "AIzaSyC0VseUx0ghf2oh48xNjzfi31HS5uEP6Pw",
+		  authDomain: "myfinanceapp-f08ae.firebaseapp.com",
+		  projectId: "myfinanceapp-f08ae",
+		  storageBucket: "myfinanceapp-f08ae.firebasestorage.app",
+		  messagingSenderId: "103173784019",
+		  appId: "1:103173784019:web:c3b48a64a03fafad592f26",
+		  measurementId: "G-BZ4SVB2W3H"
+		};
+
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const colRef = collection(db, "records");
+
+        // 新增資料
+        window.addData = async () => {
+            const desc = document.getElementById('desc').value;
+            const amount = Number(document.getElementById('amount').value);
+            const type = document.getElementById('type').value;
+
+            if (!desc || !amount) return alert("請輸入完整資訊");
+
+            await addDoc(colRef, {
+                desc, amount, type, 
+                createdAt: new Date().getTime(),
+                dateStr: new Date().toLocaleString()
+            });
+            
+            document.getElementById('desc').value = '';
+            document.getElementById('amount').value = '';
+        };
+
+        // 刪除資料
+        window.deleteData = async (id) => {
+            if(confirm("確定從雲端刪除此紀錄？")) {
+                await deleteDoc(doc(db, "records", id));
+            }
+        };
+
+        // 即時監聽 (Real-time Sync)
+        const q = query(colRef, orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const list = document.getElementById('list');
+            let exp = 0, inc = 0;
+            
+            list.innerHTML = "";
+            snapshot.forEach((doc) => {
+                const r = doc.data();
+                const id = doc.id;
+                if (r.type === 'expense') exp += r.amount; else inc += r.amount;
+
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100 animate-fade-in">
+                        <div>
+                            <div class="font-bold text-gray-700">${r.desc}</div>
+                            <div class="text-[10px] text-gray-400">${r.dateStr}</div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="font-black ${r.type==='expense'?'text-rose-500':'text-emerald-600'}">
+                                ${r.type==='expense'?'-':'+'}${r.amount.toLocaleString()}
+                            </span>
+                            <button onclick="deleteData('${id}')" class="text-gray-300 hover:text-rose-500">✕</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('totalExp').innerText = exp.toLocaleString();
+            document.getElementById('totalInc').innerText = inc.toLocaleString();
+            if(snapshot.empty) list.innerHTML = "<p class='text-center text-gray-400 py-10'>目前尚無紀錄</p>";
+        });
+    </script>
+</body>
+</html>
