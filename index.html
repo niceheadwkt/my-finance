@@ -3,77 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雲端同步帳本</title>
+    <title>專業雲端帳本</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 min-h-screen p-4 flex justify-center">
 
     <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-6 self-start mt-4">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-black text-indigo-600">☁️ 雲端同步帳本</h1>
-            <span id="status" class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">已連線</span>
-        </div>
+        <h1 class="text-2xl font-black text-indigo-600 mb-6 text-center">📊 專業雲端帳本</h1>
 
         <!-- 輸入區域 -->
-        <div class="space-y-3 mb-6">
+        <div class="space-y-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
             <input type="text" id="desc" placeholder="項目說明" class="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-400">
-            <div class="flex gap-2">
-                <input type="number" id="amount" placeholder="金額" class="flex-1 p-3 border rounded-xl outline-none">
-                <select id="type" class="p-3 border rounded-xl bg-gray-50">
-                    <option value="expense">支出</option>
-                    <option value="income">收入</option>
+            <div class="grid grid-cols-2 gap-2">
+                <input type="number" id="amount" placeholder="金額" class="p-3 border rounded-xl outline-none">
+                <select id="type" class="p-3 border rounded-xl bg-white">
+                    <option value="expense">支出 (-)</option>
+                    <option value="income">收入 (+)</option>
                 </select>
             </div>
-            <button onclick="addData()" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">同步至雲端</button>
+            <!-- 新增：消費日期選擇 -->
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 font-bold w-16">消費日期:</span>
+                <input type="date" id="consumeDate" class="flex-1 p-3 border rounded-xl outline-none bg-white">
+            </div>
+            <button onclick="addData()" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 shadow-lg">同步至雲端</button>
+        </div>
+
+        <!-- 功能：篩選與匯出入 -->
+        <div class="mb-6 space-y-3 text-sm border-t pt-4">
+            <p class="font-bold text-gray-600">📅 區間下載與上傳：</p>
+            <div class="grid grid-cols-2 gap-2">
+                <input type="date" id="filterStart" class="p-2 border rounded-lg text-xs" title="開始日期">
+                <input type="date" id="filterEnd" class="p-2 border rounded-lg text-xs" title="結束日期">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="exportCSVByRange()" class="flex-1 bg-emerald-600 text-white py-2 rounded-lg font-bold">📥 下載區間 CSV</button>
+                <label class="flex-1 bg-amber-500 text-white py-2 rounded-lg font-bold text-center cursor-pointer">
+                    📤 上傳 CSV 備份
+                    <input type="file" id="importFile" class="hidden" accept=".csv" onchange="importCSV(this)">
+                </label>
+            </div>
         </div>
 
         <!-- 統計卡片 -->
         <div class="grid grid-cols-2 gap-3 mb-6">
-            <div class="bg-gradient-to-br from-rose-500 to-rose-600 p-4 rounded-2xl text-white shadow-md">
+            <div class="bg-rose-500 p-4 rounded-2xl text-white shadow-md">
                 <p class="text-xs opacity-80">總支出</p>
                 <p class="text-xl font-bold">$ <span id="totalExp">0</span></p>
             </div>
-            <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 rounded-2xl text-white shadow-md">
+            <div class="bg-emerald-500 p-4 rounded-2xl text-white shadow-md">
                 <p class="text-xs opacity-80">總收入</p>
                 <p class="text-xl font-bold">$ <span id="totalInc">0</span></p>
             </div>
         </div>
 
         <!-- 雲端即時列表 -->
-        <div id="list" class="space-y-3 max-h-80 overflow-y-auto pt-2">
-            <p class="text-center text-gray-400 py-10">讀取雲端資料中...</p>
-        </div>
+        <div id="list" class="space-y-3 max-h-80 overflow-y-auto pt-2 border-t"></div>
     </div>
 
-    <!-- Firebase SDK 模組載入 -->
     <script type="module">
-//		// Import the functions you need from the SDKs you need
-//		import { initializeApp } from "firebase/app";
-//		import { getAnalytics } from "firebase/analytics";
-//		// TODO: Add SDKs for Firebase products that you want to use
-//		// https://firebase.google.com/docs/web/setup#available-libraries
-//
-//		// Your web app's Firebase configuration
-//		// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-//		const firebaseConfig = {
-//		  apiKey: "AIzaSyC0VseUx0ghf2oh48xNjzfi31HS5uEP6Pw",
-//		  authDomain: "myfinanceapp-f08ae.firebaseapp.com",
-//		  projectId: "myfinanceapp-f08ae",
-//		  storageBucket: "myfinanceapp-f08ae.firebasestorage.app",
-//		  messagingSenderId: "103173784019",
-//		  appId: "1:103173784019:web:c3b48a64a03fafad592f26",
-//		  measurementId: "G-BZ4SVB2W3H"
-//		};
-//
-//		// Initialize Firebase
-//		const app = initializeApp(firebaseConfig);
-//		const analytics = getAnalytics(app);
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc } 
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 請將下方替換為你在 Firebase 控制台取得的配置
+        // 🔥 請務必填入你的 Firebase Config
+        const firebaseConfig = {
 		const firebaseConfig = {
 		  apiKey: "AIzaSyC0VseUx0ghf2oh48xNjzfi31HS5uEP6Pw",
 		  authDomain: "myfinanceapp-f08ae.firebaseapp.com",
@@ -84,67 +78,120 @@
 		  measurementId: "G-BZ4SVB2W3H"
 		};
 
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const colRef = collection(db, "records");
 
-        // 新增資料
+        // 預設日期為今天
+        document.getElementById('consumeDate').valueAsDate = new Date();
+
+        // 1. 新增資料
         window.addData = async () => {
             const desc = document.getElementById('desc').value;
             const amount = Number(document.getElementById('amount').value);
             const type = document.getElementById('type').value;
+            const consumeDate = document.getElementById('consumeDate').value;
 
-            if (!desc || !amount) return alert("請輸入完整資訊");
+            if (!desc || !amount || !consumeDate) return alert("請完整填寫項目、金額與日期");
 
             await addDoc(colRef, {
-                desc, amount, type, 
-                createdAt: new Date().getTime(),
-                dateStr: new Date().toLocaleString()
+                desc, amount, type, consumeDate,
+                createdAt: new Date().getTime()
             });
             
             document.getElementById('desc').value = '';
             document.getElementById('amount').value = '';
         };
 
-        // 刪除資料
-        window.deleteData = async (id) => {
-            if(confirm("確定從雲端刪除此紀錄？")) {
-                await deleteDoc(doc(db, "records", id));
-            }
+        // 2. 區間匯出 CSV
+        window.exportCSVByRange = async () => {
+            const start = document.getElementById('filterStart').value;
+            const end = document.getElementById('filterEnd').value;
+            if (!start || !end) return alert("請先選擇開始與結束日期");
+
+            const snapshot = await query(colRef, orderBy("consumeDate", "asc")); 
+            // 這裡先抓全部再由前端過濾，因為 Firestore 複合查詢需要手動建立索引比較麻煩
+            let csv = "\ufeff日期,項目,類型,金額\n";
+            let count = 0;
+
+            onSnapshot(q, (snapshot) => {
+                const records = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.consumeDate >= start && data.consumeDate <= end) {
+                        csv += `${data.consumeDate},${data.desc},${data.type==='income'?'收入':'支出'},${data.amount}\n`;
+                        count++;
+                    }
+                });
+
+                if(count === 0) return alert("此區間內無資料");
+                const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = `帳本備份_${start}_至_${end}.csv`;
+                a.click();
+            });
         };
 
-        // 即時監聽 (Real-time Sync)
-        const q = query(colRef, orderBy("createdAt", "desc"));
+        // 3. 匯入 CSV 資料
+        window.importCSV = (input) => {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const lines = e.target.result.split('\n').slice(1); // 跳過標題列
+                const batch = writeBatch(db); // 使用 Batch 加快寫入速度
+                
+                lines.forEach(line => {
+                    const [date, desc, typeStr, amount] = line.split(',');
+                    if (date && desc && amount) {
+                        const newDocRef = doc(colRef);
+                        batch.set(newDocRef, {
+                            consumeDate: date,
+                            desc: desc,
+                            type: typeStr === '收入' ? 'income' : 'expense',
+                            amount: Number(amount),
+                            createdAt: new Date().getTime()
+                        });
+                    }
+                });
+                await batch.commit();
+                alert("資料匯入成功！");
+                input.value = ""; // 清空上傳控制項
+            };
+            reader.readAsText(file);
+        };
+
+        // 4. 刪除資料
+        window.deleteData = async (id) => {
+            if(confirm("確定刪除？")) await deleteDoc(doc(db, "records", id));
+        };
+
+        // 5. 即時顯示列表
+        const q = query(colRef, orderBy("consumeDate", "desc"));
         onSnapshot(q, (snapshot) => {
             const list = document.getElementById('list');
             let exp = 0, inc = 0;
-            
             list.innerHTML = "";
             snapshot.forEach((doc) => {
                 const r = doc.data();
-                const id = doc.id;
                 if (r.type === 'expense') exp += r.amount; else inc += r.amount;
-
                 list.innerHTML += `
-                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border border-gray-100 animate-fade-in">
-                        <div>
-                            <div class="font-bold text-gray-700">${r.desc}</div>
-                            <div class="text-[10px] text-gray-400">${r.dateStr}</div>
+                    <div class="flex justify-between items-center bg-white border p-3 rounded-xl shadow-sm">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-slate-700">${r.desc}</span>
+                            <span class="text-[10px] text-slate-400">${r.consumeDate}</span>
                         </div>
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-3">
                             <span class="font-black ${r.type==='expense'?'text-rose-500':'text-emerald-600'}">
                                 ${r.type==='expense'?'-':'+'}${r.amount.toLocaleString()}
                             </span>
-                            <button onclick="deleteData('${id}')" class="text-gray-300 hover:text-rose-500">✕</button>
+                            <button onclick="deleteData('${doc.id}')" class="text-gray-300 hover:text-rose-500">✕</button>
                         </div>
                     </div>
                 `;
             });
-
             document.getElementById('totalExp').innerText = exp.toLocaleString();
             document.getElementById('totalInc').innerText = inc.toLocaleString();
-            if(snapshot.empty) list.innerHTML = "<p class='text-center text-gray-400 py-10'>目前尚無紀錄</p>";
         });
     </script>
 </body>
