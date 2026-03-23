@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyFinance Pro | 備份與還原版</title>
+    <title>MyFinance Pro | 全格式支援版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -28,6 +28,7 @@
     <!-- 2. 主程式內容 -->
     <div id="mainApp" class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-5 mt-2">
         
+        <!-- 頂部導覽 -->
         <div class="flex items-center justify-between gap-2 mb-5 p-2 bg-slate-50 rounded-xl border border-slate-200">
             <h1 class="text-xl font-black text-indigo-600 flex-shrink-0">📊 MyFinance</h1>
             <div class="flex-grow flex items-center gap-1">
@@ -36,9 +37,10 @@
             </div>
         </div>
 
+        <!-- 輸入與篩選區 (保持原本功能) -->
         <details id="inputDetails" class="mb-5 bg-indigo-50 rounded-2xl border border-indigo-100" open>
             <summary class="p-4 cursor-pointer text-indigo-700 font-bold text-sm">+/- 新增或修改明細</summary>
-            <div id="inputForm" class="space-y-3 p-4 pt-0">
+            <div class="space-y-3 p-4 pt-0">
                 <div class="grid grid-cols-2 gap-2">
                     <input type="text" id="desc" placeholder="項目" class="p-3 border rounded-xl outline-none text-sm">
                     <input type="number" id="amount" placeholder="金額" class="p-3 border rounded-xl outline-none text-sm">
@@ -83,7 +85,7 @@
         <div id="list" class="space-y-3 max-h-[300px] overflow-y-auto"></div>
     </div>
 
-    <!-- 管理帳本與備份彈窗 -->
+    <!-- 進階管理彈窗 -->
     <div id="ledgerModal" class="fixed inset-0 bg-black/50 z-[110] flex justify-center items-center p-4 hidden">
         <div class="bg-white p-6 rounded-3xl max-w-sm w-full shadow-2xl overflow-y-auto max-h-[90vh]">
             <div class="flex justify-between items-center mb-4">
@@ -91,6 +93,7 @@
                 <button onclick="toggleLedgerModal(false)" class="text-slate-400 text-xl">✕</button>
             </div>
             
+            <!-- 帳本管理 -->
             <div class="mb-6">
                 <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">帳本切換與新增</p>
                 <div id="ledgerListManaged" class="space-y-2 mb-3"></div>
@@ -100,14 +103,25 @@
                 </div>
             </div>
 
-            <div class="mb-6 border-t pt-4">
-                <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">數據備份與還原</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="exportToJson()" class="bg-slate-100 text-slate-700 p-3 rounded-xl font-bold text-xs hover:bg-slate-200">📤 匯出備份</button>
-                    <button onclick="document.getElementById('importFile').click()" class="bg-slate-100 text-slate-700 p-3 rounded-xl font-bold text-xs hover:bg-slate-200">📥 匯入資料</button>
-                    <input type="file" id="importFile" class="hidden" accept=".json" onchange="importFromJson(event)">
+            <!-- 資料匯出匯入 -->
+            <div class="mb-6 border-t pt-4 space-y-4">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">JSON 備份 (完整資料)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="exportToJson()" class="bg-slate-100 text-slate-700 p-2 rounded-xl font-bold text-xs">📤 匯出</button>
+                        <button onclick="document.getElementById('importJsonFile').click()" class="bg-slate-100 text-slate-700 p-2 rounded-xl font-bold text-xs">📥 匯入</button>
+                        <input type="file" id="importJsonFile" class="hidden" accept=".json" onchange="importFromJson(event)">
+                    </div>
                 </div>
-                <p class="text-[9px] text-slate-400 mt-2">* 匯入將「追加」資料至目前帳本。</p>
+
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">CSV 報表 (Excel 可開)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="exportToCsv()" class="bg-emerald-50 text-emerald-700 p-2 rounded-xl font-bold text-xs border border-emerald-100">📤 導出 CSV</button>
+                        <button onclick="document.getElementById('importCsvFile').click()" class="bg-emerald-50 text-emerald-700 p-2 rounded-xl font-bold text-xs border border-emerald-100">📥 導入 CSV</button>
+                        <input type="file" id="importCsvFile" class="hidden" accept=".csv" onchange="importFromCsv(event)">
+                    </div>
+                </div>
             </div>
 
             <button onclick="logout()" class="w-full border border-rose-500 text-rose-500 p-3 rounded-xl font-bold text-sm">登出系統</button>
@@ -119,7 +133,6 @@
         import { getFirestore, collection, addDoc, updateDoc, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // 🔥 設定區
         const APP_PASSWORD = "1685858"; 
 		const firebaseConfig = {
 		  apiKey: "AIzaSyC0VseUx0ghf2oh48xNjzfi31HS5uEP6Pw",
@@ -133,17 +146,12 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        
-        let allData = [];
-        let editingId = null;
-        let myChart = null;
-        let unsubscribe = null;
+        let allData = [], editingId = null, myChart = null, unsubscribe = null;
 
-        // --- 登入控制 ---
+        // --- 核心安全邏輯 ---
         window.checkLogin = () => {
-            const input = document.getElementById('pwInput').value;
-            if (input === APP_PASSWORD) { sessionStorage.setItem('isLoggedIn', 'true'); showApp(); }
-            else { document.getElementById('errorMsg').style.opacity = "1"; setTimeout(() => { document.getElementById('errorMsg').style.opacity = "0"; }, 2000); }
+            if (document.getElementById('pwInput').value === APP_PASSWORD) { sessionStorage.setItem('isLoggedIn', 'true'); showApp(); }
+            else { document.getElementById('errorMsg').style.opacity = "1"; setTimeout(() => document.getElementById('errorMsg').style.opacity = "0", 2000); }
         };
         const showApp = () => { document.getElementById('loginSection').style.display = 'none'; document.getElementById('mainApp').style.display = 'block'; init(); };
         window.logout = () => { sessionStorage.removeItem('isLoggedIn'); location.reload(); };
@@ -163,8 +171,7 @@
         };
 
         const setupLedgerUI = () => {
-            const ledgers = getLedgers();
-            const activeId = getCurrentLedger();
+            const ledgers = getLedgers(); const activeId = getCurrentLedger();
             document.getElementById('ledgerSelector').innerHTML = ledgers.map(l => `<option value="${l.id}" ${l.id === activeId ? 'selected' : ''}>${l.name}</option>`).join('');
             document.getElementById('ledgerListManaged').innerHTML = ledgers.map(l => `
                 <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded border">
@@ -173,71 +180,92 @@
                 </div>`).join('');
         };
 
-        const startListenCloud = (ledgerId) => {
+        const startListenCloud = (id) => {
             if (unsubscribe) unsubscribe();
-            unsubscribe = onSnapshot(query(collection(db, ledgerId), orderBy("consumeDate", "desc")), (snapshot) => {
-                allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderList();
+            unsubscribe = onSnapshot(query(collection(db, id), orderBy("consumeDate", "desc")), (s) => {
+                allData = s.docs.map(d => ({ id: d.id, ...d.data() })); renderList();
             });
         };
 
-        window.switchLedger = (ledgerId) => { localStorage.setItem('myFinActiveLedger', ledgerId); startListenCloud(ledgerId); setupLedgerUI(); };
-        window.toggleLedgerModal = (show) => document.getElementById('ledgerModal').classList.toggle('hidden', !show);
+        window.switchLedger = (id) => { localStorage.setItem('myFinActiveLedger', id); startListenCloud(id); setupLedgerUI(); };
+        window.toggleLedgerModal = (s) => document.getElementById('ledgerModal').classList.toggle('hidden', !s);
         window.addLedger = () => {
             const name = document.getElementById('newLedgerName').value; if (!name) return;
-            const ledgers = getLedgers(); const newId = 'records_' + Date.now();
-            ledgers.push({ id: newId, name }); localStorage.setItem('myFinLedgers', JSON.stringify(ledgers));
-            document.getElementById('newLedgerName').value = ''; window.switchLedger(newId);
+            const ls = getLedgers(); const nid = 'records_' + Date.now();
+            ls.push({ id: nid, name }); localStorage.setItem('myFinLedgers', JSON.stringify(ls));
+            document.getElementById('newLedgerName').value = ''; window.switchLedger(nid);
         };
-        window.deleteLedgerAction = (id) => { if(confirm("確定刪除此帳本索引？")) { const nl = getLedgers().filter(l=>l.id!==id); localStorage.setItem('myFinLedgers', JSON.stringify(nl)); if(id===getCurrentLedger()) window.switchLedger('records_default'); else setupLedgerUI(); }};
+        window.deleteLedgerAction = (id) => { if(confirm("確定刪除帳本索引？")) { const nl = getLedgers().filter(l=>l.id!==id); localStorage.setItem('myFinLedgers', JSON.stringify(nl)); window.switchLedger('records_default'); }};
 
-        // --- 匯出匯入功能核心 ---
+        // --- 匯出功能 (JSON & CSV) ---
         window.exportToJson = () => {
-            if (allData.length === 0) return alert("目前帳本沒有資料可供匯出");
-            const activeLedgerName = getLedgers().find(l => l.id === getCurrentLedger())?.name || "帳本";
-            const dataStr = JSON.stringify(allData, null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
+            const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
+            saveFile(blob, `Backup_${new Date().toISOString().split('T')[0]}.json`);
+        };
+
+        window.exportToCsv = () => {
+            if (allData.length === 0) return alert("無資料可匯出");
+            let csvContent = "\uFEFF"; // 加入 UTF-8 BOM，防止 Excel 亂碼
+            csvContent += "日期,項目,金額,類型,備註\n";
+            allData.forEach(r => {
+                const typeText = r.type === 'expense' ? '支出' : '收入';
+                csvContent += `${r.consumeDate},"${r.desc}",${r.amount},${typeText},"${r.remark || ''}"\n`;
+            });
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            saveFile(blob, `Report_${new Date().toISOString().split('T')[0]}.csv`);
+        };
+
+        const saveFile = (blob, filename) => {
             const link = document.createElement("a");
-            link.href = url;
-            link.download = `備份_${activeLedgerName}_${new Date().toISOString().split('T')[0]}.json`;
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
             link.click();
-            URL.revokeObjectURL(url);
         };
 
-        window.importFromJson = (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
+        // --- 匯入功能 (JSON & CSV) ---
+        window.importFromJson = (e) => {
             const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (!Array.isArray(importedData)) throw new Error("無效的資料格式");
-                    if (!confirm(`偵測到 ${importedData.length} 筆資料，確定匯入至目前帳本？`)) return;
-
-                    const batch = writeBatch(db);
-                    const colRef = collection(db, getCurrentLedger());
-                    
-                    importedData.forEach(item => {
-                        // 移除舊的 Firebase ID 避免衝突，建立新引用
-                        const { id, ...cleanData } = item;
-                        const newDocRef = doc(colRef); 
-                        batch.set(newDocRef, cleanData);
-                    });
-
-                    await batch.commit();
-                    alert("匯入成功！");
-                    toggleLedgerModal(false);
-                } catch (err) {
-                    alert("匯入失敗：請確保檔案格式正確");
-                    console.error(err);
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = ''; // 清除 input
+            reader.onload = (ev) => processImport(JSON.parse(ev.target.result));
+            reader.readAsText(e.target.files[0]);
         };
 
-        // --- 基礎增刪改查 ---
+        window.importFromCsv = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const lines = ev.target.result.split('\n');
+                const data = [];
+                // 跳過標題行 (i=1)
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(',').map(c => c.replace(/"/g, '').trim());
+                    if (cols.length >= 4 && cols[0]) {
+                        data.push({
+                            consumeDate: cols[0],
+                            desc: cols[1],
+                            amount: Number(cols[2]),
+                            type: cols[3] === '收入' ? 'income' : 'expense',
+                            remark: cols[4] || '',
+                            updatedAt: new Date().getTime()
+                        });
+                    }
+                }
+                processImport(data);
+            };
+            reader.readAsText(e.target.files[0]);
+        };
+
+        const processImport = async (dataList) => {
+            if (!confirm(`確定匯入 ${dataList.length} 筆資料？`)) return;
+            const batch = writeBatch(db);
+            const colRef = collection(db, getCurrentLedger());
+            dataList.forEach(item => {
+                const { id, ...clean } = item;
+                batch.set(doc(colRef), clean);
+            });
+            await batch.commit();
+            alert("匯入成功"); toggleLedgerModal(false);
+        };
+
+        // --- 基礎增刪改查與圖表 (保持不變) ---
         window.saveData = async () => {
             const data = {
                 desc: document.getElementById('desc').value.trim(),
@@ -247,12 +275,10 @@
                 remark: document.getElementById('remark').value,
                 updatedAt: new Date().getTime()
             };
-            if (!data.desc || !data.amount) return alert("請輸入項目與金額");
-            try {
-                if (editingId) await updateDoc(doc(db, getCurrentLedger(), editingId), data);
-                else { data.createdAt = new Date().getTime(); await addDoc(collection(db, getCurrentLedger()), data); }
-                editingId = null; resetForm(); document.getElementById('inputDetails').open = false;
-            } catch (e) { alert("同步失敗"); }
+            if (!data.desc || !data.amount) return alert("請填寫完整");
+            if (editingId) await updateDoc(doc(db, getCurrentLedger(), editingId), data);
+            else { data.createdAt = new Date().getTime(); await addDoc(collection(db, getCurrentLedger()), data); }
+            editingId = null; resetForm();
         };
 
         window.startEdit = (id) => {
@@ -261,8 +287,7 @@
             document.getElementById('remark').value = item.remark || ''; document.getElementById('consumeDate').value = item.consumeDate;
             document.getElementById('type').value = item.type; document.getElementById('submitBtn').innerText = "儲存修改";
             document.getElementById('submitBtn').classList.replace('bg-indigo-600', 'bg-orange-500');
-            document.getElementById('cancelBtn').classList.remove('hidden'); document.getElementById('inputDetails').open = true;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('cancelBtn').classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         window.cancelEdit = () => { editingId = null; resetForm(); };
@@ -279,50 +304,18 @@
             const keyword = document.getElementById('searchKeyword').value.toLowerCase();
             const start = document.getElementById('filterStart').value, end = document.getElementById('filterEnd').value;
             const listEl = document.getElementById('list');
-            let exp = 0, inc = 0; listEl.innerHTML = "";
-            const expenseGroups = {};
+            let exp = 0, inc = 0; listEl.innerHTML = ""; const groups = {};
             const filtered = allData.filter(r => (r.consumeDate >= start && r.consumeDate <= end) && (r.desc.toLowerCase().includes(keyword) || (r.remark && r.remark.toLowerCase().includes(keyword))));
 
             filtered.forEach(r => {
-                if (r.type === 'expense') { exp += r.amount; expenseGroups[r.desc] = (expenseGroups[r.desc] || 0) + r.amount; }
+                if (r.type === 'expense') { exp += r.amount; groups[r.desc] = (groups[r.desc] || 0) + r.amount; }
                 else inc += r.amount;
                 listEl.innerHTML += `
-                    <div class="bg-white border p-3 rounded-xl shadow-sm relative">
-                        <div class="flex justify-between items-start">
-                            <div class="max-w-[60%]">
-                                <span class="text-[9px] font-bold text-indigo-400">${r.consumeDate}</span>
-                                <h3 class="font-bold text-slate-800 text-sm truncate">${r.desc}</h3>
-                                ${r.remark ? `<p class="text-[10px] text-slate-500 mt-0.5 truncate italic"># ${r.remark}</p>` : ''}
-                            </div>
-                            <div class="text-right">
-                                <span class="font-black text-sm ${r.type==='expense'?'text-rose-500':'text-emerald-600'}">${r.type==='expense'?'-':'+'}${r.amount.toLocaleString()}</span>
-                                <div class="mt-1 flex gap-2 justify-end">
-                                    <button onclick="startEdit('${r.id}')" class="text-[9px] text-indigo-600">修改</button>
-                                    <button onclick="deleteData('${r.id}')" class="text-[9px] text-rose-400">刪除</button>
-                                </div>
-                            </div>
+                    <div class="bg-white border p-3 rounded-xl shadow-sm flex justify-between items-start">
+                        <div class="max-w-[60%]">
+                            <span class="text-[9px] font-bold text-indigo-400">${r.consumeDate}</span>
+                            <h3 class="font-bold text-slate-800 text-sm truncate">${r.desc}</h3>
+                            ${r.remark ? `<p class="text-[10px] text-slate-500 mt-0.5 truncate italic"># ${r.remark}</p>` : ''}
                         </div>
-                    </div>`;
-            });
-            document.getElementById('totalExp').innerText = exp.toLocaleString();
-            document.getElementById('totalInc').innerText = inc.toLocaleString();
-            updateChart(expenseGroups);
-            document.getElementById('chartContainer').classList.toggle('hidden', Object.keys(expenseGroups).length === 0);
-        };
-
-        const updateChart = (groups) => {
-            const ctx = document.getElementById('expenseChart').getContext('2d');
-            if (myChart) myChart.destroy();
-            if (Object.keys(groups).length === 0) return;
-            myChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(groups),
-                    datasets: [{ data: Object.values(groups), backgroundColor: ['#4f46e5', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4'], borderWidth: 1 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10 } } } }
-            });
-        };
-    </script>
-</body>
-</html>
+                        <div class="text-right">
+                            <span class="font-black text-sm ${r.type==='expense'?'text-rose-500':'text-emerald-600'}">${r.type==='expense'?'-':'+'}${r.
