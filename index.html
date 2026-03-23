@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyFinance Pro | 隱私加密版</title>
+    <title>MyFinance Pro | 備份與還原版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* 隱藏未登入前的內容 */
         #mainApp { display: none; }
         .login-screen { display: flex; }
     </style>
@@ -17,21 +16,18 @@
     <!-- 1. 密碼登入牆 -->
     <div id="loginSection" class="login-screen fixed inset-0 bg-indigo-600 z-[100] flex-col justify-center items-center p-6 text-white">
         <div class="w-full max-w-xs text-center">
-            <h2 class="text-3xl font-black mb-2 text-white">MyFinance</h2>
+            <h2 class="text-3xl font-black mb-2">MyFinance</h2>
             <p class="text-indigo-200 text-sm mb-8">請輸入管理密碼以存取帳本</p>
             <input type="password" id="pwInput" placeholder="請輸入密碼" 
                    class="w-full p-4 rounded-2xl border-none outline-none text-slate-800 text-center text-xl tracking-widest shadow-2xl mb-4">
-            <button onclick="checkLogin()" class="w-full bg-white text-indigo-600 font-bold py-4 rounded-2xl shadow-lg hover:bg-indigo-50 transition">
-                解鎖進入
-            </button>
-            <p id="errorMsg" class="mt-4 text-rose-300 text-sm font-bold opacity-0 transition-opacity">密碼錯誤，請再試一次</p>
+            <button onclick="checkLogin()" class="w-full bg-white text-indigo-600 font-bold py-4 rounded-2xl shadow-lg hover:bg-indigo-50 transition">解鎖進入</button>
+            <p id="errorMsg" class="mt-4 text-rose-300 text-sm font-bold opacity-0 transition-opacity">密碼錯誤</p>
         </div>
     </div>
 
-    <!-- 2. 主程式內容 (預設隱藏) -->
+    <!-- 2. 主程式內容 -->
     <div id="mainApp" class="max-w-md w-full bg-white rounded-3xl shadow-2xl p-5 mt-2">
         
-        <!-- 頂部選單與帳本切換 -->
         <div class="flex items-center justify-between gap-2 mb-5 p-2 bg-slate-50 rounded-xl border border-slate-200">
             <h1 class="text-xl font-black text-indigo-600 flex-shrink-0">📊 MyFinance</h1>
             <div class="flex-grow flex items-center gap-1">
@@ -40,12 +36,11 @@
             </div>
         </div>
 
-        <!-- 輸入區 (可折疊) -->
-        <details id="inputDetails" class="mb-5 bg-indigo-50 rounded-2xl border border-indigo-100 open" open>
+        <details id="inputDetails" class="mb-5 bg-indigo-50 rounded-2xl border border-indigo-100" open>
             <summary class="p-4 cursor-pointer text-indigo-700 font-bold text-sm">+/- 新增或修改明細</summary>
             <div id="inputForm" class="space-y-3 p-4 pt-0">
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="text" id="desc" placeholder="項目(如:午餐)" class="p-3 border rounded-xl outline-none text-sm">
+                    <input type="text" id="desc" placeholder="項目" class="p-3 border rounded-xl outline-none text-sm">
                     <input type="number" id="amount" placeholder="金額" class="p-3 border rounded-xl outline-none text-sm">
                 </div>
                 <input type="text" id="remark" placeholder="備註(選填)" class="w-full p-3 border rounded-xl outline-none text-sm">
@@ -63,19 +58,17 @@
             </div>
         </details>
 
-        <!-- 篩選與圖表 -->
         <div class="mb-5 p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
             <input type="text" id="searchKeyword" oninput="renderList()" placeholder="🔍 搜尋項目或備註..." class="w-full p-2 text-sm border rounded-lg outline-none">
             <div class="grid grid-cols-2 gap-2">
-                <input type="date" id="filterStart" onchange="renderList()" class="p-2 border rounded-lg text-[10px]" title="開始日期">
-                <input type="date" id="filterEnd" onchange="renderList()" class="p-2 border rounded-lg text-[10px]" title="結束日期">
+                <input type="date" id="filterStart" onchange="renderList()" class="p-2 border rounded-lg text-[10px]">
+                <input type="date" id="filterEnd" onchange="renderList()" class="p-2 border rounded-lg text-[10px]">
             </div>
             <div id="chartContainer" class="hidden mt-4 pt-4 border-t border-slate-200">
                 <div class="h-[180px] flex justify-center"><canvas id="expenseChart"></canvas></div>
             </div>
         </div>
 
-        <!-- 統計卡片 -->
         <div class="grid grid-cols-2 gap-3 mb-5 text-center">
             <div class="bg-rose-500 p-3 rounded-2xl text-white">
                 <p class="text-[10px] opacity-80">支出</p>
@@ -87,40 +80,55 @@
             </div>
         </div>
 
-        <!-- 列表 -->
         <div id="list" class="space-y-3 max-h-[300px] overflow-y-auto"></div>
     </div>
 
-    <!-- 管理帳本彈窗 -->
+    <!-- 管理帳本與備份彈窗 -->
     <div id="ledgerModal" class="fixed inset-0 bg-black/50 z-[110] flex justify-center items-center p-4 hidden">
-        <div class="bg-white p-6 rounded-3xl max-w-sm w-full shadow-2xl">
+        <div class="bg-white p-6 rounded-3xl max-w-sm w-full shadow-2xl overflow-y-auto max-h-[90vh]">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-lg text-slate-700">帳本管理</h3>
+                <h3 class="font-bold text-lg text-slate-700">進階管理</h3>
                 <button onclick="toggleLedgerModal(false)" class="text-slate-400 text-xl">✕</button>
             </div>
-            <div id="ledgerListManaged" class="space-y-2 mb-4 max-h-40 overflow-y-auto"></div>
-            <input type="text" id="newLedgerName" placeholder="新帳本名稱" class="w-full p-3 border rounded-xl mb-2 text-sm">
-            <button onclick="addLedger()" class="w-full bg-indigo-500 text-white p-3 rounded-xl font-bold text-sm mb-6">新增帳本</button>
+            
+            <div class="mb-6">
+                <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">帳本切換與新增</p>
+                <div id="ledgerListManaged" class="space-y-2 mb-3"></div>
+                <div class="flex gap-1">
+                    <input type="text" id="newLedgerName" placeholder="新帳本名稱" class="flex-grow p-2 border rounded-lg text-sm">
+                    <button onclick="addLedger()" class="bg-indigo-500 text-white px-3 py-2 rounded-lg font-bold text-xs">新增</button>
+                </div>
+            </div>
+
+            <div class="mb-6 border-t pt-4">
+                <p class="text-[10px] font-bold text-slate-400 mb-2 uppercase">數據備份與還原</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="exportToJson()" class="bg-slate-100 text-slate-700 p-3 rounded-xl font-bold text-xs hover:bg-slate-200">📤 匯出備份</button>
+                    <button onclick="document.getElementById('importFile').click()" class="bg-slate-100 text-slate-700 p-3 rounded-xl font-bold text-xs hover:bg-slate-200">📥 匯入資料</button>
+                    <input type="file" id="importFile" class="hidden" accept=".json" onchange="importFromJson(event)">
+                </div>
+                <p class="text-[9px] text-slate-400 mt-2">* 匯入將「追加」資料至目前帳本。</p>
+            </div>
+
             <button onclick="logout()" class="w-full border border-rose-500 text-rose-500 p-3 rounded-xl font-bold text-sm">登出系統</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, onSnapshot, query, orderBy, deleteDoc, doc } 
+        import { getFirestore, collection, addDoc, updateDoc, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch } 
         from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // 🔥 設定區
-        const APP_PASSWORD = "1685858"; // 在這裡修改你的登入密碼
-		const firebaseConfig = {
-		  apiKey: "AIzaSyC0VseUx0ghf2oh48xNjzfi31HS5uEP6Pw",
-		  authDomain: "myfinanceapp-f08ae.firebaseapp.com",
-		  projectId: "myfinanceapp-f08ae",
-		  storageBucket: "myfinanceapp-f08ae.firebasestorage.app",
-		  messagingSenderId: "103173784019",
-		  appId: "1:103173784019:web:c3b48a64a03fafad592f26",
-		  measurementId: "G-BZ4SVB2W3H"
-		};
+        const APP_PASSWORD = "你的密碼"; 
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0VseUx0ghf2oh48xNjzfi31HS5uEP6Pw",
+            authDomain: "myfinanceapp-f08ae.firebaseapp.com",
+            projectId: "myfinanceapp-f08ae",
+            storageBucket: "myfinanceapp-f08ae.appspot.com",
+            messagingSenderId: "305139046714",
+            appId: "1:305139046714:web:86f68c783c749021870505"
+        };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
@@ -130,36 +138,17 @@
         let myChart = null;
         let unsubscribe = null;
 
-        // === A. 密碼驗證邏輯 ===
+        // --- 登入控制 ---
         window.checkLogin = () => {
             const input = document.getElementById('pwInput').value;
-            const error = document.getElementById('errorMsg');
-            if (input === APP_PASSWORD) {
-                sessionStorage.setItem('isLoggedIn', 'true');
-                showApp();
-            } else {
-                error.style.opacity = "1";
-                setTimeout(() => { error.style.opacity = "0"; }, 2000);
-            }
+            if (input === APP_PASSWORD) { sessionStorage.setItem('isLoggedIn', 'true'); showApp(); }
+            else { document.getElementById('errorMsg').style.opacity = "1"; setTimeout(() => { document.getElementById('errorMsg').style.opacity = "0"; }, 2000); }
         };
+        const showApp = () => { document.getElementById('loginSection').style.display = 'none'; document.getElementById('mainApp').style.display = 'block'; init(); };
+        window.logout = () => { sessionStorage.removeItem('isLoggedIn'); location.reload(); };
+        if (sessionStorage.getItem('isLoggedIn') === 'true') showApp();
 
-        const showApp = () => {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            init(); // 驗證成功後才開始跑初始化跟 Firebase 讀取
-        };
-
-        window.logout = () => {
-            sessionStorage.removeItem('isLoggedIn');
-            location.reload();
-        };
-
-        // 頁面加載檢查：如果已經登入過就直接顯示
-        if (sessionStorage.getItem('isLoggedIn') === 'true') {
-            showApp();
-        }
-
-        // === B. 帳本與資料邏輯 (續接之前功能) ===
+        // --- 帳本邏輯 ---
         const getLedgers = () => JSON.parse(localStorage.getItem('myFinLedgers')) || [{ id: 'records_default', name: '預設帳本' }];
         const getCurrentLedger = () => localStorage.getItem('myFinActiveLedger') || 'records_default';
 
@@ -178,49 +167,76 @@
             document.getElementById('ledgerSelector').innerHTML = ledgers.map(l => `<option value="${l.id}" ${l.id === activeId ? 'selected' : ''}>${l.name}</option>`).join('');
             document.getElementById('ledgerListManaged').innerHTML = ledgers.map(l => `
                 <div class="flex justify-between items-center text-xs p-2 bg-slate-50 rounded border">
-                    <span>${l.name}</span>
+                    <span class="${l.id === activeId ? 'font-bold text-indigo-600' : ''}">${l.name}</span>
                     ${l.id === 'records_default' ? '' : `<button onclick="window.deleteLedgerAction('${l.id}')" class="text-rose-500">刪除</button>`}
                 </div>`).join('');
         };
 
         const startListenCloud = (ledgerId) => {
             if (unsubscribe) unsubscribe();
-            const colRef = collection(db, ledgerId);
-            const q = query(colRef, orderBy("consumeDate", "desc"));
-            unsubscribe = onSnapshot(q, (snapshot) => {
+            unsubscribe = onSnapshot(query(collection(db, ledgerId), orderBy("consumeDate", "desc")), (snapshot) => {
                 allData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderList();
             });
         };
 
-        window.switchLedger = (ledgerId) => {
-            localStorage.setItem('myFinActiveLedger', ledgerId);
-            startListenCloud(ledgerId);
-            setupLedgerUI();
-        };
-
+        window.switchLedger = (ledgerId) => { localStorage.setItem('myFinActiveLedger', ledgerId); startListenCloud(ledgerId); setupLedgerUI(); };
         window.toggleLedgerModal = (show) => document.getElementById('ledgerModal').classList.toggle('hidden', !show);
-
         window.addLedger = () => {
-            const name = document.getElementById('newLedgerName').value;
-            if (!name) return;
-            const ledgers = getLedgers();
-            const newId = 'records_' + Date.now();
-            ledgers.push({ id: newId, name });
-            localStorage.setItem('myFinLedgers', JSON.stringify(ledgers));
-            document.getElementById('newLedgerName').value = '';
-            window.switchLedger(newId);
-            toggleLedgerModal(false);
+            const name = document.getElementById('newLedgerName').value; if (!name) return;
+            const ledgers = getLedgers(); const newId = 'records_' + Date.now();
+            ledgers.push({ id: newId, name }); localStorage.setItem('myFinLedgers', JSON.stringify(ledgers));
+            document.getElementById('newLedgerName').value = ''; window.switchLedger(newId);
+        };
+        window.deleteLedgerAction = (id) => { if(confirm("確定刪除此帳本索引？")) { const nl = getLedgers().filter(l=>l.id!==id); localStorage.setItem('myFinLedgers', JSON.stringify(nl)); if(id===getCurrentLedger()) window.switchLedger('records_default'); else setupLedgerUI(); }};
+
+        // --- 匯出匯入功能核心 ---
+        window.exportToJson = () => {
+            if (allData.length === 0) return alert("目前帳本沒有資料可供匯出");
+            const activeLedgerName = getLedgers().find(l => l.id === getCurrentLedger())?.name || "帳本";
+            const dataStr = JSON.stringify(allData, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `備份_${activeLedgerName}_${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
         };
 
-        window.deleteLedgerAction = (ledgerId) => {
-            if (!confirm("確定刪除此帳本索引？")) return;
-            const newList = getLedgers().filter(l => l.id !== ledgerId);
-            localStorage.setItem('myFinLedgers', JSON.stringify(newList));
-            if (ledgerId === getCurrentLedger()) window.switchLedger('records_default');
-            else setupLedgerUI();
+        window.importFromJson = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedData)) throw new Error("無效的資料格式");
+                    if (!confirm(`偵測到 ${importedData.length} 筆資料，確定匯入至目前帳本？`)) return;
+
+                    const batch = writeBatch(db);
+                    const colRef = collection(db, getCurrentLedger());
+                    
+                    importedData.forEach(item => {
+                        // 移除舊的 Firebase ID 避免衝突，建立新引用
+                        const { id, ...cleanData } = item;
+                        const newDocRef = doc(colRef); 
+                        batch.set(newDocRef, cleanData);
+                    });
+
+                    await batch.commit();
+                    alert("匯入成功！");
+                    toggleLedgerModal(false);
+                } catch (err) {
+                    alert("匯入失敗：請確保檔案格式正確");
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // 清除 input
         };
 
+        // --- 基礎增刪改查 ---
         window.saveData = async () => {
             const data = {
                 desc: document.getElementById('desc').value.trim(),
@@ -235,21 +251,16 @@
                 if (editingId) await updateDoc(doc(db, getCurrentLedger(), editingId), data);
                 else { data.createdAt = new Date().getTime(); await addDoc(collection(db, getCurrentLedger()), data); }
                 editingId = null; resetForm(); document.getElementById('inputDetails').open = false;
-            } catch (e) { alert("失敗：" + e.message); }
+            } catch (e) { alert("同步失敗"); }
         };
 
         window.startEdit = (id) => {
             const item = allData.find(r => r.id === id);
-            editingId = id;
-            document.getElementById('desc').value = item.desc;
-            document.getElementById('amount').value = item.amount;
-            document.getElementById('remark').value = item.remark || '';
-            document.getElementById('consumeDate').value = item.consumeDate;
-            document.getElementById('type').value = item.type;
-            document.getElementById('submitBtn').innerText = "儲存修改";
+            editingId = id; document.getElementById('desc').value = item.desc; document.getElementById('amount').value = item.amount;
+            document.getElementById('remark').value = item.remark || ''; document.getElementById('consumeDate').value = item.consumeDate;
+            document.getElementById('type').value = item.type; document.getElementById('submitBtn').innerText = "儲存修改";
             document.getElementById('submitBtn').classList.replace('bg-indigo-600', 'bg-orange-500');
-            document.getElementById('cancelBtn').classList.remove('hidden');
-            document.getElementById('inputDetails').open = true;
+            document.getElementById('cancelBtn').classList.remove('hidden'); document.getElementById('inputDetails').open = true;
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
@@ -265,11 +276,9 @@
 
         window.renderList = () => {
             const keyword = document.getElementById('searchKeyword').value.toLowerCase();
-            const start = document.getElementById('filterStart').value;
-            const end = document.getElementById('filterEnd').value;
+            const start = document.getElementById('filterStart').value, end = document.getElementById('filterEnd').value;
             const listEl = document.getElementById('list');
-            let exp = 0, inc = 0;
-            listEl.innerHTML = "";
+            let exp = 0, inc = 0; listEl.innerHTML = "";
             const expenseGroups = {};
             const filtered = allData.filter(r => (r.consumeDate >= start && r.consumeDate <= end) && (r.desc.toLowerCase().includes(keyword) || (r.remark && r.remark.toLowerCase().includes(keyword))));
 
@@ -277,7 +286,7 @@
                 if (r.type === 'expense') { exp += r.amount; expenseGroups[r.desc] = (expenseGroups[r.desc] || 0) + r.amount; }
                 else inc += r.amount;
                 listEl.innerHTML += `
-                    <div class="bg-white border p-3 rounded-xl shadow-sm relative group">
+                    <div class="bg-white border p-3 rounded-xl shadow-sm relative">
                         <div class="flex justify-between items-start">
                             <div class="max-w-[60%]">
                                 <span class="text-[9px] font-bold text-indigo-400">${r.consumeDate}</span>
@@ -285,9 +294,7 @@
                                 ${r.remark ? `<p class="text-[10px] text-slate-500 mt-0.5 truncate italic"># ${r.remark}</p>` : ''}
                             </div>
                             <div class="text-right">
-                                <span class="font-black text-sm ${r.type==='expense'?'text-rose-500':'text-emerald-600'}">
-                                    ${r.type==='expense'?'-':'+'}${r.amount.toLocaleString()}
-                                </span>
+                                <span class="font-black text-sm ${r.type==='expense'?'text-rose-500':'text-emerald-600'}">${r.type==='expense'?'-':'+'}${r.amount.toLocaleString()}</span>
                                 <div class="mt-1 flex gap-2 justify-end">
                                     <button onclick="startEdit('${r.id}')" class="text-[9px] text-indigo-600">修改</button>
                                     <button onclick="deleteData('${r.id}')" class="text-[9px] text-rose-400">刪除</button>
